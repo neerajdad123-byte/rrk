@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | RRK Chicken</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/rrk-shared.css" />
+  <link rel="stylesheet" href="assets/rrk-pages.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="assets/rrk-shared.js"></script>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="index.html"><span class="brand__mark">RRK</span><span class="brand__text">Staff Panel<small>Admin only</small></span></a>
+    <a class="cta cta--ghost cta--sm" href="index.html"><i data-lucide="arrow-left"></i>Back to site</a>
+  </header>
+
+  <section class="admin-gate" id="loginGate">
+    <div class="admin-box">
+      <h1>Staff Login</h1>
+      <p>RRK Chicken admin — update menu, offers & settings.</p>
+      <div class="form-field"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password" /></div>
+      <button class="cta cta--block" id="loginBtn" type="button" style="margin-top:20px;">Login</button>
+      <p style="margin-top:16px;font-size:0.75rem;color:var(--muted);">Default password: <code>rrk2026</code></p>
+    </div>
+  </section>
+
+  <div class="admin-dash" id="adminDash">
+    <div class="admin-tabs" id="adminTabs">
+      <button type="button" data-tab="special" class="is-active">Today's Special</button>
+      <button type="button" data-tab="menu">Menu</button>
+      <button type="button" data-tab="raw">Raw Chicken</button>
+      <button type="button" data-tab="offers">Offers</button>
+      <button type="button" data-tab="orders">Customer Log</button>
+      <button type="button" data-tab="settings">Settings</button>
+    </div>
+
+    <div class="admin-panel is-active" id="panel-special">
+      <h2>Today's Special</h2>
+      <div class="admin-row admin-row-2">
+        <div class="form-field"><label>Name</label><input id="spName" /></div>
+        <div class="form-field"><label>Price (₹)</label><input type="number" id="spPrice" /></div>
+      </div>
+      <div class="admin-row admin-row-2">
+        <div class="form-field"><label>Old price (₹)</label><input type="number" id="spOld" /></div>
+        <div class="form-field"><label>Image URL</label><input id="spImage" /></div>
+      </div>
+      <div class="form-field"><label>Description</label><textarea id="spDesc" rows="3"></textarea></div>
+      <button class="cta" id="saveSpecial" type="button">Save Special</button>
+    </div>
+
+    <div class="admin-panel" id="panel-menu">
+      <h2>Menu Items</h2>
+      <div style="overflow-x:auto;"><table class="admin-table"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Spice</th><th></th></tr></thead><tbody id="menuTable"></tbody></table></div>
+      <div class="admin-actions"><button class="cta cta--ghost" id="addMenuRow" type="button">+ Add item</button><button class="cta" id="saveMenu" type="button">Save Menu</button></div>
+    </div>
+
+    <div class="admin-panel" id="panel-raw">
+      <h2>Raw Chicken Rates</h2>
+      <div style="overflow-x:auto;"><table class="admin-table"><thead><tr><th>Name</th><th>Unit</th><th>Price/kg</th><th>Desc</th><th></th></tr></thead><tbody id="rawTable"></tbody></table></div>
+      <div class="admin-actions"><button class="cta cta--ghost" id="addRawRow" type="button">+ Add cut</button><button class="cta" id="saveRaw" type="button">Save Rates</button></div>
+    </div>
+
+    <div class="admin-panel" id="panel-offers">
+      <h2>Festival & Birthday Offers</h2>
+      <h3 style="font-family:var(--mono);font-size:0.7rem;letter-spacing:0.15em;color:var(--gold);margin-bottom:12px;">FESTIVAL</h3>
+      <div id="festivalList"></div>
+      <h3 style="font-family:var(--mono);font-size:0.7rem;letter-spacing:0.15em;color:var(--gold);margin:24px 0 12px;">BIRTHDAY</h3>
+      <div id="birthdayList"></div>
+      <div class="admin-actions"><button class="cta" id="saveOffers" type="button">Save Offers</button></div>
+    </div>
+
+    <div class="admin-panel" id="panel-orders">
+      <h2>Customer Orders Log</h2>
+      <div style="overflow-x:auto;"><table class="admin-table"><thead><tr><th>When</th><th>Type</th><th>Name</th><th>Total</th></tr></thead><tbody id="ordersTable"></tbody></table></div>
+    </div>
+
+    <div class="admin-panel" id="panel-settings">
+      <h2>Settings</h2>
+      <div class="admin-row admin-row-2">
+        <div class="form-field"><label>Phone (+91…)</label><input id="setPhone" /></div>
+        <div class="form-field"><label>WhatsApp number</label><input id="setWa" /></div>
+      </div>
+      <div class="form-field"><label>WhatsApp Community link</label><input id="setCommunity" /></div>
+      <div class="form-field"><label>New admin password</label><input type="password" id="setPass" placeholder="Leave blank to keep current" /></div>
+      <button class="cta" id="saveSettings" type="button">Save Settings</button>
+    </div>
+  </div>
+
+  <script>
+    let data = rrkLoadData();
+    rrkApplySettings(data);
+    const dash = document.getElementById("adminDash");
+    const gate = document.getElementById("loginGate");
+
+    function showDash() {
+      gate.style.display = "none";
+      dash.classList.add("is-on");
+      loadForms();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const pass = document.getElementById("loginPass").value;
+      const expected = data.settings?.adminPassword || RRK.adminPassword;
+      if (pass === expected) { sessionStorage.setItem("rrk_admin", "1"); showDash(); }
+      else rrkToast("Wrong password");
+    });
+    if (sessionStorage.getItem("rrk_admin") === "1") showDash();
+
+    document.querySelectorAll("#adminTabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#adminTabs button").forEach((b) => b.classList.remove("is-active"));
+        document.querySelectorAll(".admin-panel").forEach((p) => p.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        document.getElementById("panel-" + btn.dataset.tab).classList.add("is-active");
+      });
+    });
+
+    function loadForms() {
+      const s = data.special || RRK_DEFAULT.special;
+      document.getElementById("spName").value = s.name || "";
+      document.getElementById("spPrice").value = s.price || "";
+      document.getElementById("spOld").value = s.oldPrice || "";
+      document.getElementById("spDesc").value = s.desc || "";
+      document.getElementById("spImage").value = s.image || "";
+
+      renderMenuTable();
+      renderRawTable();
+      renderOffers();
+      renderOrders();
+
+      document.getElementById("setPhone").value = data.settings?.phone || RRK.phone;
+      document.getElementById("setWa").value = data.settings?.whatsapp || RRK.whatsapp;
+      document.getElementById("setCommunity").value = data.settings?.community || RRK.community;
+    }
+
+    function renderMenuTable() {
+      document.getElementById("menuTable").innerHTML = data.menu.map((m, i) => `
+        <tr data-i="${i}">
+          <td><input value="${m.name}" data-f="name" /></td>
+          <td><input value="${m.category}" data-f="category" /></td>
+          <td><input type="number" value="${m.price}" data-f="price" /></td>
+          <td><input type="number" min="1" max="3" value="${m.spice || 1}" data-f="spice" /></td>
+          <td><button type="button" class="btn-icon del-menu" data-i="${i}"><i data-lucide="trash-2"></i></button></td>
+        </tr>`).join("");
+      document.querySelectorAll(".del-menu").forEach((b) => b.addEventListener("click", () => { data.menu.splice(+b.dataset.i, 1); renderMenuTable(); lucide.createIcons(); }));
+    }
+
+    function renderRawTable() {
+      document.getElementById("rawTable").innerHTML = data.rawChicken.map((r, i) => `
+        <tr data-i="${i}">
+          <td><input value="${r.name}" data-f="name" /></td>
+          <td><input value="${r.unit}" data-f="unit" /></td>
+          <td><input type="number" value="${r.price}" data-f="price" /></td>
+          <td><input value="${r.desc}" data-f="desc" /></td>
+          <td><button type="button" class="btn-icon del-raw" data-i="${i}"><i data-lucide="trash-2"></i></button></td>
+        </tr>`).join("");
+      document.querySelectorAll(".del-raw").forEach((b) => b.addEventListener("click", () => { data.rawChicken.splice(+b.dataset.i, 1); renderRawTable(); lucide.createIcons(); }));
+    }
+
+    function renderOffers() {
+      const mk = (list, id) => {
+        document.getElementById(id).innerHTML = (list || []).map((o, i) => `
+          <div class="admin-row admin-row-2" style="margin-bottom:12px;" data-offer="${id}-${i}">
+            <div class="form-field"><label>Title</label><input value="${o.title}" data-f="title" /></div>
+            <div class="form-field"><label>Description</label><input value="${o.desc}" data-f="desc" /></div>
+          </div>`).join("");
+      };
+      mk(data.festivalOffers, "festivalList");
+      mk(data.birthdayOffers, "birthdayList");
+    }
+
+    function renderOrders() {
+      const orders = data.orders || [];
+      document.getElementById("ordersTable").innerHTML = orders.length ? orders.slice(0, 50).map((o) => `
+        <tr><td>${new Date(o.at).toLocaleString("en-IN")}</td><td>${o.type}</td><td>${o.name || "—"}</td><td>${o.total ? rrkFormatRs(o.total) : "—"}</td></tr>`).join("")
+        : '<tr><td colspan="4">No orders logged yet</td></tr>';
+    }
+
+    document.getElementById("saveSpecial").addEventListener("click", () => {
+      data.special = {
+        name: document.getElementById("spName").value,
+        price: +document.getElementById("spPrice").value,
+        oldPrice: +document.getElementById("spOld").value,
+        desc: document.getElementById("spDesc").value,
+        image: document.getElementById("spImage").value,
+      };
+      rrkSaveData(data);
+      rrkToast("Special saved");
+    });
+
+    document.getElementById("addMenuRow").addEventListener("click", () => {
+      data.menu.push({ id: "m" + Date.now(), name: "New Item", category: "Starters", price: 199, desc: "", spice: 2, veg: false, image: RRK_IMAGES.starter });
+      renderMenuTable(); lucide.createIcons();
+    });
+
+    document.getElementById("saveMenu").addEventListener("click", () => {
+      document.querySelectorAll("#menuTable tr").forEach((tr, i) => {
+        tr.querySelectorAll("input").forEach((inp) => {
+          const f = inp.dataset.f;
+          data.menu[i][f] = f === "price" || f === "spice" ? +inp.value : inp.value;
+        });
+      });
+      rrkSaveData(data);
+      rrkToast("Menu saved");
+    });
+
+    document.getElementById("addRawRow").addEventListener("click", () => {
+      data.rawChicken.push({ id: "r" + Date.now(), name: "New Cut", unit: "per kg", price: 250, desc: "" });
+      renderRawTable(); lucide.createIcons();
+    });
+
+    document.getElementById("saveRaw").addEventListener("click", () => {
+      document.querySelectorAll("#rawTable tr").forEach((tr, i) => {
+        tr.querySelectorAll("input").forEach((inp) => {
+          const f = inp.dataset.f;
+          data.rawChicken[i][f] = f === "price" ? +inp.value : inp.value;
+        });
+      });
+      rrkSaveData(data);
+      rrkToast("Raw rates saved");
+    });
+
+    document.getElementById("saveOffers").addEventListener("click", () => {
+      const readOffers = (id) => {
+        const rows = document.querySelectorAll(`#${id} > div`);
+        return Array.from(rows).map((row) => ({
+          title: row.querySelector('[data-f="title"]').value,
+          desc: row.querySelector('[data-f="desc"]').value,
+          active: true,
+        }));
+      };
+      data.festivalOffers = readOffers("festivalList");
+      data.birthdayOffers = readOffers("birthdayList");
+      rrkSaveData(data);
+      rrkToast("Offers saved");
+    });
+
+    document.getElementById("saveSettings").addEventListener("click", () => {
+      data.settings = data.settings || {};
+      data.settings.phone = document.getElementById("setPhone").value;
+      data.settings.whatsapp = document.getElementById("setWa").value;
+      data.settings.community = document.getElementById("setCommunity").value;
+      const np = document.getElementById("setPass").value;
+      if (np) data.settings.adminPassword = np;
+      rrkSaveData(data);
+      rrkApplySettings(data);
+      rrkToast("Settings saved");
+    });
+
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

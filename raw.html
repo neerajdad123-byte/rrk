@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raw Chicken | RRK Chicken Eluru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/rrk-shared.css" />
+  <link rel="stylesheet" href="assets/rrk-pages.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="assets/rrk-shared.js"></script>
+</head>
+<body class="raw-page">
+  <div class="loader" id="loader"><div class="loader__content"><div class="loader__meta">Fresh counter</div><div class="loader__title">Raw <span>Chicken</span></div><div class="loader__bar"></div></div></div>
+  <div class="progress" id="progress"></div>
+
+  <header class="nav" style="background:rgba(250,248,245,0.92);border-color:rgba(0,0,0,0.08);">
+    <a class="brand" href="index.html" style="color:var(--char);"><span class="brand__mark" style="border-color:var(--char);">RRK</span><span class="brand__text">RRK Chicken<small style="color:var(--muted);">Eluru · Est. 2019</small></span></a>
+    <nav><ul class="nav__links">
+      <li><a href="index.html" style="color:var(--char);">Home</a></li>
+      <li><a href="menu.html" style="color:var(--char);">Menu</a></li>
+      <li><a href="craft.html" style="color:var(--char);">Craft My Plate</a></li>
+      <li><a href="raw.html" style="color:var(--char);">Raw Chicken</a></li>
+    </ul></nav>
+    <button class="nav__cart" id="openCart" type="button" style="background:var(--blue);"><i data-lucide="shopping-bag"></i>Cart <span class="nav__cart-count" id="navCartCount">0</span></button>
+  </header>
+
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <p class="page-hero__label reveal">Today's rates · fresh counter</p>
+      <h1 class="reveal">Fresh cuts, <em>daily.</em></h1>
+      <p class="page-hero__desc reveal">Same birds from our kitchen — cleaned, cut and weighed in front of you. Order for takeaway or delivery.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__inner">
+      <div class="raw-grid" id="rawGrid"></div>
+    </div>
+  </section>
+
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer__head"><h2>Raw Order</h2><button class="btn-icon" id="closeCart" type="button"><i data-lucide="x"></i></button></div>
+    <div class="cart-drawer__list" id="cartList"></div>
+    <div class="cart-drawer__foot">
+      <div class="cart-total"><span>Total</span><span id="cartTotal">₹0</span></div>
+      <div class="order-type">
+        <label><input type="radio" name="orderType" value="Takeaway" checked /><span>Takeaway</span></label>
+        <label><input type="radio" name="orderType" value="Delivery" /><span>Delivery</span></label>
+      </div>
+      <div class="form-field"><label>Name</label><input type="text" id="custName" placeholder="Your name" /></div>
+      <div class="form-field"><label>Phone</label><input type="tel" id="custPhone" placeholder="Mobile" /></div>
+      <div class="form-field" id="addressField" hidden><label>Address</label><textarea id="custAddress" rows="2"></textarea></div>
+      <button class="cta cta--wa cta--block" id="checkoutBtn" type="button"><i data-lucide="message-circle"></i>Order on WhatsApp</button>
+    </div>
+  </aside>
+
+  <div id="footerMount"></div>
+
+  <script>
+    const PAGE = "raw";
+    let data = rrkLoadData();
+    rrkApplySettings(data);
+    let cart = rrkGetCart(PAGE);
+    const weights = [0.5, 1, 2];
+
+    document.getElementById("footerMount").innerHTML = rrkFooterHtml();
+
+    function renderRaw() {
+      document.getElementById("rawGrid").innerHTML = data.rawChicken.map((item) => `
+        <article class="raw-card reveal" data-id="${item.id}">
+          <h3>${item.name}</h3>
+          <p>${item.desc}</p>
+          <div class="raw-card__rate">${rrkFormatRs(item.price)} <small>${item.unit}</small></div>
+          <p style="font-size:0.72rem;font-family:var(--mono);color:var(--muted);margin-bottom:10px;">Select weight</p>
+          <div class="weight-row">${weights.map((w) => `<button type="button" data-w="${w}">${w} kg</button>`).join("")}</div>
+          <button class="cta cta--blue cta--block cta--sm add-raw" type="button"><i data-lucide="plus"></i>Add to cart</button>
+        </article>`).join("");
+
+      document.querySelectorAll(".raw-card").forEach((card) => {
+        const btns = card.querySelectorAll(".weight-row button");
+        btns[1]?.classList.add("is-active");
+        btns.forEach((b) => b.addEventListener("click", () => {
+          btns.forEach((x) => x.classList.remove("is-active"));
+          b.classList.add("is-active");
+        }));
+        card.querySelector(".add-raw").addEventListener("click", () => {
+          const item = data.rawChicken.find((r) => r.id === card.dataset.id);
+          const wBtn = card.querySelector(".weight-row button.is-active");
+          const kg = parseFloat(wBtn?.dataset.w || "1");
+          const lineId = item.id + "_" + kg;
+          const line = cart.find((c) => c.lineId === lineId);
+          const price = Math.round(item.price * kg);
+          const label = `${item.name} (${kg} kg)`;
+          if (line) line.qty++;
+          else cart.push({ lineId, id: item.id, name: label, price, qty: 1, kg });
+          rrkSetCart(PAGE, cart);
+          renderCart();
+          rrkToast(label + " added");
+        });
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderCart() {
+      document.getElementById("navCartCount").textContent = rrkCartCount(cart);
+      document.getElementById("cartTotal").textContent = rrkFormatRs(rrkCartTotal(cart));
+      const list = document.getElementById("cartList");
+      if (!cart.length) { list.innerHTML = '<p class="cart-empty">No cuts selected yet</p>'; return; }
+      list.innerHTML = cart.map((line, i) => `
+        <div class="cart-line"><span class="cart-line__name">${line.name}</span><span class="cart-line__price">${rrkFormatRs(line.price * line.qty)}</span>
+        <div class="cart-line__qty"><button type="button" data-dec="${i}">−</button><span>${line.qty}</span><button type="button" data-inc="${i}">+</button></div></div>`).join("");
+      list.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => { cart[+b.dataset.inc].qty++; rrkSetCart(PAGE, cart); renderCart(); }));
+      list.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => {
+        const idx = +b.dataset.dec; cart[idx].qty--; if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        rrkSetCart(PAGE, cart); renderCart();
+      }));
+    }
+
+    document.getElementById("openCart").addEventListener("click", () => { document.getElementById("cartOverlay").classList.add("is-open"); document.getElementById("cartDrawer").classList.add("is-open"); });
+    document.getElementById("closeCart").addEventListener("click", () => { document.getElementById("cartOverlay").classList.remove("is-open"); document.getElementById("cartDrawer").classList.remove("is-open"); });
+    document.getElementById("cartOverlay").addEventListener("click", () => { document.getElementById("cartOverlay").classList.remove("is-open"); document.getElementById("cartDrawer").classList.remove("is-open"); });
+
+    document.querySelectorAll('input[name="orderType"]').forEach((r) => {
+      r.addEventListener("change", () => { document.getElementById("addressField").hidden = r.value !== "Delivery" || !r.checked; });
+    });
+
+    document.getElementById("checkoutBtn").addEventListener("click", () => {
+      if (!cart.length) { rrkToast("Add cuts first"); return; }
+      const name = document.getElementById("custName").value.trim() || "Customer";
+      const phone = document.getElementById("custPhone").value.trim();
+      const type = document.querySelector('input[name="orderType"]:checked').value;
+      const address = document.getElementById("custAddress").value.trim();
+      if (type === "Delivery" && !address) { rrkToast("Add address"); return; }
+
+      let msg = `*RRK Chicken — Raw Order*\nName: ${name}\nType: ${type}\n`;
+      if (phone) msg += `Phone: ${phone}\n`;
+      if (address) msg += `Address: ${address}\n`;
+      msg += `\n*Items:*\n`;
+      cart.forEach((l) => { msg += `• ${l.name} x${l.qty} — ${rrkFormatRs(l.price * l.qty)}\n`; });
+      msg += `\n*Total: ${rrkFormatRs(rrkCartTotal(cart))}*`;
+
+      rrkLogOrder("raw", { name, phone, type, total: rrkCartTotal(cart), items: cart });
+      window.open(rrkWaLink(msg), "_blank");
+    });
+
+    renderRaw();
+    renderCart();
+    rrkInitPage("raw.html");
+    document.querySelector('.nav__links a[href="raw.html"]')?.classList.add("is-active");
+  </script>
+</body>
+</html>

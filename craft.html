@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Craft My Plate | RRK Chicken Eluru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/rrk-shared.css" />
+  <link rel="stylesheet" href="assets/rrk-pages.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="assets/rrk-shared.js"></script>
+</head>
+<body>
+  <div class="loader" id="loader"><div class="loader__content"><div class="loader__meta">Build your feast</div><div class="loader__title">Craft <span>My Plate</span></div><div class="loader__bar"></div></div></div>
+  <div class="progress" id="progress"></div>
+
+  <header class="nav">
+    <a class="brand" href="index.html"><span class="brand__mark">RRK</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
+    <nav><ul class="nav__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="craft.html">Craft My Plate</a></li>
+      <li><a href="raw.html">Raw Chicken</a></li>
+    </ul></nav>
+    <button class="nav__cart" id="openCart" type="button"><i data-lucide="shopping-bag"></i>Plate <span class="nav__cart-count" id="navCartCount">0</span></button>
+  </header>
+
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <p class="page-hero__label reveal">Custom feast builder</p>
+      <h1 class="reveal">Build your <em>feast.</em></h1>
+      <p class="page-hero__desc reveal">Pick dishes, set headcount, unlock group offers — confirm on WhatsApp.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__inner">
+      <h2 style="font-family:var(--display);font-size:2rem;text-transform:uppercase;margin-bottom:20px;" class="reveal">Ready combos</h2>
+      <div class="combo-row reveal" id="comboRow"></div>
+
+      <div class="craft-layout">
+        <div>
+          <h2 style="font-family:var(--display);font-size:2rem;text-transform:uppercase;margin-bottom:20px;" class="reveal">Add from menu</h2>
+          <div class="menu-grid" id="craftMenuGrid"></div>
+        </div>
+        <aside class="craft-panel reveal">
+          <h3>Your plate</h3>
+          <div class="guest-stepper">
+            <button type="button" id="guestMinus">−</button>
+            <span id="guestCount">2</span>
+            <button type="button" id="guestPlus">+</button>
+          </div>
+          <p style="font-size:0.75rem;color:var(--muted);margin-bottom:16px;text-align:center;">How many are eating?</p>
+          <div class="plate-preview" id="platePreview">
+            <div class="plate-preview__empty">Add dishes to<br/>fill your plate</div>
+          </div>
+          <div class="offer-banner" id="offerBanner">Add more items to unlock offers</div>
+          <div class="cart-total" style="margin-bottom:16px;"><span>Total</span><span id="craftTotal">₹0</span></div>
+          <div class="form-field"><label>Your name</label><input type="text" id="custName" placeholder="Name" /></div>
+          <div class="form-field"><label>Phone</label><input type="tel" id="custPhone" placeholder="Mobile" /></div>
+          <div class="order-type" style="margin:16px 0;">
+            <label><input type="radio" name="orderType" value="Takeaway" checked /><span>Takeaway</span></label>
+            <label><input type="radio" name="orderType" value="Delivery" /><span>Delivery</span></label>
+          </div>
+          <button class="cta cta--wa cta--block" id="craftCheckout" type="button"><i data-lucide="message-circle"></i>Confirm on WhatsApp</button>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer__head"><h2>Your Plate</h2><button class="btn-icon" id="closeCart" type="button"><i data-lucide="x"></i></button></div>
+    <div class="cart-drawer__list" id="cartList"></div>
+    <div class="cart-drawer__foot">
+      <div class="cart-total"><span>Total</span><span id="drawerTotal">₹0</span></div>
+    </div>
+  </aside>
+
+  <div id="footerMount"></div>
+
+  <script>
+    const PAGE = "craft";
+    let data = rrkLoadData();
+    rrkApplySettings(data);
+    let cart = rrkGetCart(PAGE);
+    let guests = 2;
+
+    document.getElementById("footerMount").innerHTML = rrkFooterHtml();
+
+    function calcOffer() {
+      const offers = data.craftOffers || RRK_DEFAULT.craftOffers;
+      const itemCount = cart.length;
+      let best = null;
+      offers.forEach((o) => {
+        if (guests >= o.minGuests && itemCount >= o.minItems) best = o;
+      });
+      return best;
+    }
+
+    function renderCombos() {
+      document.getElementById("comboRow").innerHTML = (data.craftCombos || []).map((c) => `
+        <div class="combo-card" data-combo="${c.id}">
+          <h4>${c.name}</h4>
+          <p style="font-family:var(--mono);font-size:0.75rem;color:var(--gold);">${rrkFormatRs(c.price)} · ${c.guests} guests</p>
+          <ul>${c.items.map((i) => `<li>${i}</li>`).join("")}</ul>
+          <button class="cta cta--sm cta--gold" type="button">Use combo</button>
+        </div>`).join("");
+      document.querySelectorAll(".combo-card").forEach((card) => {
+        card.querySelector("button").addEventListener("click", () => {
+          const combo = data.craftCombos.find((c) => c.id === card.dataset.combo);
+          if (!combo) return;
+          guests = combo.guests;
+          document.getElementById("guestCount").textContent = guests;
+          cart = [];
+          combo.items.forEach((name) => {
+            const m = data.menu.find((x) => x.name === name);
+            if (m) cart.push({ id: m.id, name: m.name, price: m.price, qty: 1 });
+          });
+          if (!cart.length) cart.push({ id: "combo", name: combo.name, price: combo.price, qty: 1 });
+          rrkSetCart(PAGE, cart);
+          updateUI();
+          rrkToast(combo.name + " loaded");
+        });
+      });
+    }
+
+    function renderCraftMenu() {
+      document.getElementById("craftMenuGrid").innerHTML = data.menu.map((item) => `
+        <article class="menu-item">
+          <div class="menu-item__img"><img src="${item.image || RRK_IMAGES.curry}" alt="${item.name}" loading="lazy" /></div>
+          <div class="menu-item__body">
+            <div class="menu-item__top"><h3>${item.name}</h3><span class="menu-item__price">${rrkFormatRs(item.price)}</span></div>
+            <p>${item.desc}</p>
+            <button class="cta cta--sm cta--block" type="button" data-add="${item.id}"><i data-lucide="plus"></i>Add to plate</button>
+          </div>
+        </article>`).join("");
+      document.querySelectorAll("[data-add]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const item = data.menu.find((m) => m.id === btn.dataset.add);
+          const line = cart.find((c) => c.id === item.id);
+          if (line) line.qty++; else cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+          rrkSetCart(PAGE, cart);
+          updateUI();
+          rrkToast(item.name + " added");
+        });
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateUI() {
+      const total = rrkCartTotal(cart);
+      const discount = calcOffer();
+      let finalTotal = total;
+      if (discount) finalTotal = Math.round(total * (1 - discount.discount / 100));
+
+      document.getElementById("navCartCount").textContent = rrkCartCount(cart);
+      document.getElementById("craftTotal").textContent = rrkFormatRs(finalTotal) + (discount ? ` (${discount.discount}% off)` : "");
+      document.getElementById("drawerTotal").textContent = rrkFormatRs(finalTotal);
+      document.getElementById("offerBanner").textContent = discount ? discount.message : "Add more dishes or guests to unlock offers";
+
+      const preview = document.getElementById("platePreview");
+      if (cart.length) {
+        const img = cart[0].id !== "combo" ? data.menu.find((m) => m.id === cart[0].id)?.image : RRK_IMAGES.bucket;
+        preview.innerHTML = `<img src="${img || RRK_IMAGES.curry}" alt="Your plate" /><span style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.1em;color:var(--gold);">${rrkCartCount(cart)} ITEMS · ${guests} GUESTS</span>`;
+      } else {
+        preview.innerHTML = '<div class="plate-preview__empty">Add dishes to<br/>fill your plate</div>';
+      }
+
+      const list = document.getElementById("cartList");
+      if (!cart.length) list.innerHTML = '<p class="cart-empty">Plate is empty</p>';
+      else list.innerHTML = cart.map((l, i) => `
+        <div class="cart-line"><span class="cart-line__name">${l.name}</span><span class="cart-line__price">${rrkFormatRs(l.price * l.qty)}</span>
+        <div class="cart-line__qty"><button type="button" data-dec="${i}">−</button><span>${l.qty}</span><button type="button" data-inc="${i}">+</button></div></div>`).join("");
+      list.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => { cart[+b.dataset.inc].qty++; rrkSetCart(PAGE, cart); updateUI(); }));
+      list.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => {
+        const idx = +b.dataset.dec; cart[idx].qty--; if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        rrkSetCart(PAGE, cart); updateUI();
+      }));
+    }
+
+    document.getElementById("guestMinus").addEventListener("click", () => { if (guests > 1) { guests--; document.getElementById("guestCount").textContent = guests; updateUI(); } });
+    document.getElementById("guestPlus").addEventListener("click", () => { if (guests < 50) { guests++; document.getElementById("guestCount").textContent = guests; updateUI(); } });
+    document.getElementById("openCart").addEventListener("click", () => { document.getElementById("cartOverlay").classList.add("is-open"); document.getElementById("cartDrawer").classList.add("is-open"); });
+    document.getElementById("closeCart").addEventListener("click", () => { document.getElementById("cartOverlay").classList.remove("is-open"); document.getElementById("cartDrawer").classList.remove("is-open"); });
+    document.getElementById("cartOverlay").addEventListener("click", () => { document.getElementById("cartOverlay").classList.remove("is-open"); document.getElementById("cartDrawer").classList.remove("is-open"); });
+
+    document.getElementById("craftCheckout").addEventListener("click", () => {
+      if (!cart.length) { rrkToast("Add dishes first"); return; }
+      const name = document.getElementById("custName").value.trim() || "Customer";
+      const phone = document.getElementById("custPhone").value.trim();
+      const type = document.querySelector('input[name="orderType"]:checked').value;
+      const discount = calcOffer();
+      const total = rrkCartTotal(cart);
+      const finalTotal = discount ? Math.round(total * (1 - discount.discount / 100)) : total;
+
+      let msg = `*RRK Chicken — Craft My Plate*\nName: ${name}\nGuests: ${guests}\nType: ${type}\n`;
+      if (phone) msg += `Phone: ${phone}\n\n*Dishes:*\n`;
+      cart.forEach((l) => { msg += `• ${l.name} x${l.qty} — ${rrkFormatRs(l.price * l.qty)}\n`; });
+      if (discount) msg += `\nOffer: ${discount.message}\n`;
+      msg += `\n*Total: ${rrkFormatRs(finalTotal)}*`;
+
+      rrkLogOrder("craft", { name, phone, guests, type, total: finalTotal, items: cart });
+      window.open(rrkWaLink(msg), "_blank");
+      rrkToast("Opening WhatsApp…");
+    });
+
+    renderCombos();
+    renderCraftMenu();
+    updateUI();
+    rrkInitPage("craft.html");
+    document.querySelector('.nav__links a[href="craft.html"]')?.classList.add("is-active");
+  </script>
+</body>
+</html>

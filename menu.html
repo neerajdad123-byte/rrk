@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu | RRK Chicken Eluru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/rrk-shared.css" />
+  <link rel="stylesheet" href="assets/rrk-pages.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="assets/rrk-shared.js"></script>
+</head>
+<body>
+  <div class="loader" id="loader"><div class="loader__content"><div class="loader__meta">RRK Menu</div><div class="loader__title">Pick your <span>heat</span></div><div class="loader__bar"></div></div></div>
+  <div class="progress" id="progress"></div>
+
+  <header class="nav">
+    <a class="brand" href="index.html"><span class="brand__mark">RRK</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
+    <nav><ul class="nav__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="craft.html">Craft My Plate</a></li>
+      <li><a href="raw.html">Raw Chicken</a></li>
+    </ul></nav>
+    <button class="nav__cart" id="openCart" type="button"><i data-lucide="shopping-bag"></i>Cart <span class="nav__cart-count" id="navCartCount">0</span></button>
+  </header>
+
+  <section class="page-hero">
+    <div class="page-hero__inner">
+      <p class="page-hero__label reveal">Full menu · QR ready</p>
+      <h1 class="reveal">Order your <em>plate.</em></h1>
+      <p class="page-hero__desc reveal">Browse, add to cart, choose takeaway or delivery — confirm on WhatsApp in seconds.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__inner">
+      <div class="menu-toolbar reveal">
+        <div class="menu-tabs" id="categoryTabs"></div>
+        <span class="qr-badge" id="qrBadge" hidden>QR Menu Mode</span>
+      </div>
+      <div class="menu-grid" id="menuGrid"></div>
+    </div>
+  </section>
+
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer__head">
+      <h2>Your Order</h2>
+      <button class="btn-icon" id="closeCart" type="button" aria-label="Close cart"><i data-lucide="x"></i></button>
+    </div>
+    <div class="cart-drawer__list" id="cartList"></div>
+    <div class="cart-drawer__foot">
+      <div class="cart-total"><span>Total</span><span id="cartTotal">₹0</span></div>
+      <div class="order-type">
+        <label><input type="radio" name="orderType" value="Takeaway" checked /><span>Takeaway</span></label>
+        <label><input type="radio" name="orderType" value="Delivery" /><span>Delivery</span></label>
+      </div>
+      <div class="form-field"><label>Your name</label><input type="text" id="custName" placeholder="Name for order" /></div>
+      <div class="form-field"><label>Phone</label><input type="tel" id="custPhone" placeholder="10-digit mobile" /></div>
+      <div class="form-field" id="addressField" hidden><label>Delivery address</label><textarea id="custAddress" rows="2" placeholder="House no, street, landmark"></textarea></div>
+      <button class="cta cta--wa cta--block" id="checkoutBtn" type="button"><i data-lucide="message-circle"></i>Send on WhatsApp</button>
+    </div>
+  </aside>
+
+  <div class="modal" id="craftModal">
+    <div class="modal__box">
+      <h3>Unlock <em>Craft My Plate</em></h3>
+      <p>Your cart crossed ₹1000! Build a custom feast for your group and unlock better offers.</p>
+      <div class="modal__actions">
+        <a class="cta cta--gold cta--block" href="craft.html"><i data-lucide="chef-hat"></i>Build My Plate</a>
+        <button class="cta cta--ghost cta--block" id="continueMenu" type="button">Continue with menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="footerMount"></div>
+
+  <script>
+    const PAGE = "menu";
+    const params = new URLSearchParams(location.search);
+    const isQR = params.get("qr") === "1";
+    if (isQR) document.getElementById("qrBadge").hidden = false;
+
+    let data = rrkLoadData();
+    rrkApplySettings(data);
+    let cart = rrkGetCart(PAGE);
+    let activeCat = "All";
+    let craftModalShown = false;
+
+    document.getElementById("footerMount").innerHTML = rrkFooterHtml();
+
+    const categories = ["All", ...new Set(data.menu.map((m) => m.category))];
+    const tabsEl = document.getElementById("categoryTabs");
+    categories.forEach((cat) => {
+      const btn = document.createElement("button");
+      btn.textContent = cat;
+      btn.type = "button";
+      if (cat === "All") btn.classList.add("is-active");
+      btn.addEventListener("click", () => {
+        activeCat = cat;
+        tabsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("is-active", b.textContent === cat));
+        renderMenu();
+      });
+      tabsEl.appendChild(btn);
+    });
+
+    function renderMenu() {
+      const grid = document.getElementById("menuGrid");
+      const items = activeCat === "All" ? data.menu : data.menu.filter((m) => m.category === activeCat);
+      grid.innerHTML = items.map((item) => `
+        <article class="menu-item reveal">
+          <div class="menu-item__img"><img src="${item.image || RRK_IMAGES.curry}" alt="${item.name}" loading="lazy" /></div>
+          <div class="menu-item__body">
+            <div class="menu-item__top"><h3>${item.name}</h3><span class="menu-item__price">${rrkFormatRs(item.price)}</span></div>
+            <p>${item.desc}</p>
+            <div class="menu-item__meta">
+              <span class="tag tag--nonveg">Non-Veg</span>
+              ${rrkSpiceHtml(item.spice || 1)}
+            </div>
+            <div class="menu-item__actions">
+              <button class="cta cta--sm" type="button" data-add="${item.id}"><i data-lucide="plus"></i>Add</button>
+            </div>
+          </div>
+        </article>`).join("");
+      grid.querySelectorAll("[data-add]").forEach((btn) => {
+        btn.addEventListener("click", () => addItem(btn.dataset.add));
+      });
+      if (window.lucide) lucide.createIcons();
+      if (window.gsap) gsap.utils.toArray(".menu-item.reveal").forEach((el) => gsap.to(el, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }));
+    }
+
+    function addItem(id) {
+      const item = data.menu.find((m) => m.id === id);
+      if (!item) return;
+      const line = cart.find((c) => c.id === id);
+      if (line) line.qty++; else cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+      rrkSetCart(PAGE, cart);
+      renderCart();
+      rrkToast(item.name + " added");
+      const total = rrkCartTotal(cart);
+      if (total >= RRK.craftThreshold && !craftModalShown) {
+        craftModalShown = true;
+        document.getElementById("craftModal").classList.add("is-open");
+      }
+    }
+
+    function renderCart() {
+      document.getElementById("navCartCount").textContent = rrkCartCount(cart);
+      document.getElementById("cartTotal").textContent = rrkFormatRs(rrkCartTotal(cart));
+      const list = document.getElementById("cartList");
+      if (!cart.length) {
+        list.innerHTML = '<p class="cart-empty">Cart is empty — add something hot.</p>';
+        return;
+      }
+      list.innerHTML = cart.map((line, i) => `
+        <div class="cart-line">
+          <span class="cart-line__name">${line.name}</span>
+          <span class="cart-line__price">${rrkFormatRs(line.price * line.qty)}</span>
+          <div class="cart-line__qty">
+            <button type="button" data-dec="${i}">−</button>
+            <span>${line.qty}</span>
+            <button type="button" data-inc="${i}">+</button>
+          </div>
+        </div>`).join("");
+      list.querySelectorAll("[data-inc]").forEach((b) => b.addEventListener("click", () => { cart[+b.dataset.inc].qty++; rrkSetCart(PAGE, cart); renderCart(); }));
+      list.querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => {
+        const idx = +b.dataset.dec;
+        cart[idx].qty--;
+        if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        rrkSetCart(PAGE, cart);
+        renderCart();
+      }));
+    }
+
+    function openCart() { document.getElementById("cartOverlay").classList.add("is-open"); document.getElementById("cartDrawer").classList.add("is-open"); }
+    function closeCart() { document.getElementById("cartOverlay").classList.remove("is-open"); document.getElementById("cartDrawer").classList.remove("is-open"); }
+
+    document.getElementById("openCart").addEventListener("click", openCart);
+    document.getElementById("closeCart").addEventListener("click", closeCart);
+    document.getElementById("cartOverlay").addEventListener("click", closeCart);
+    document.getElementById("continueMenu").addEventListener("click", () => document.getElementById("craftModal").classList.remove("is-open"));
+
+    document.querySelectorAll('input[name="orderType"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        document.getElementById("addressField").hidden = r.value !== "Delivery" || !r.checked;
+      });
+    });
+
+    document.getElementById("checkoutBtn").addEventListener("click", () => {
+      if (!cart.length) { rrkToast("Add items first"); return; }
+      const name = document.getElementById("custName").value.trim() || "Customer";
+      const phone = document.getElementById("custPhone").value.trim();
+      const type = document.querySelector('input[name="orderType"]:checked').value;
+      const address = document.getElementById("custAddress").value.trim();
+      if (type === "Delivery" && !address) { rrkToast("Add delivery address"); return; }
+
+      let msg = `*RRK Chicken — Menu Order*\nName: ${name}\n`;
+      if (phone) msg += `Phone: ${phone}\n`;
+      msg += `Type: ${type}\n`;
+      if (address) msg += `Address: ${address}\n`;
+      msg += `\n*Items:*\n`;
+      cart.forEach((l) => { msg += `• ${l.name} x${l.qty} — ${rrkFormatRs(l.price * l.qty)}\n`; });
+      msg += `\n*Total: ${rrkFormatRs(rrkCartTotal(cart))}*`;
+
+      rrkLogOrder("menu", { name, phone, type, total: rrkCartTotal(cart), items: cart });
+      window.open(rrkWaLink(msg), "_blank");
+      rrkToast("Opening WhatsApp…");
+    });
+
+    renderMenu();
+    renderCart();
+    rrkInitPage("menu.html");
+    document.querySelector('.nav__links a[href="menu.html"]')?.classList.add("is-active");
+  </script>
+</body>
+</html>
