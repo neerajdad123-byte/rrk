@@ -19,14 +19,14 @@
   <div class="progress" id="progress"></div>
 
   <header class="nav">
-    <a class="brand" href="index.html"><span class="brand__mark">RRK</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
+    <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
     <nav><ul class="nav__links">
       <li><a href="index.html">Home</a></li>
       <li><a href="menu.html">Menu</a></li>
       <li><a href="craft.html">Craft My Plate</a></li>
       <li><a href="raw.html">Raw Chicken</a></li>
     </ul></nav>
-    <button class="nav__cart" id="openCart" type="button"><i data-lucide="shopping-bag"></i>Plate <span class="nav__cart-count" id="navCartCount">0</span></button>
+    <button class="nav__cart" id="openCart" type="button"><svg class="nav__cart-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.7 9.2h10.6l.9 9.7a2.3 2.3 0 0 1-2.29 2.5H8.09a2.3 2.3 0 0 1-2.29-2.5l.9-9.7Z" fill="currentColor" opacity="0.92"/><path d="M9 9.2V7.1a3 3 0 0 1 6 0v2.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>Plate <span class="nav__cart-count" id="navCartCount">0</span></button>
   </header>
 
   <section class="page-hero">
@@ -55,9 +55,25 @@
             <button type="button" id="guestPlus">+</button>
           </div>
           <p style="font-size:0.75rem;color:var(--muted);margin-bottom:16px;text-align:center;">How many are eating?</p>
-          <div class="plate-preview" id="platePreview">
-            <div class="plate-preview__empty">Add dishes to<br/>fill your plate</div>
+
+          <div class="crate3d" aria-hidden="true">
+            <div class="crate3d__scene">
+              <div class="crate3d__spin">
+                <div class="crate3d__box" id="crateBox">
+                  <div class="crate3d__face crate3d__face--front"><span>RRK</span></div>
+                  <div class="crate3d__face crate3d__face--side"></div>
+                  <div class="crate3d__face crate3d__face--floor"></div>
+                  <div class="crate3d__lid-hinge">
+                    <div class="crate3d__lid-flap" id="crateLid">
+                      <div class="crate3d__face crate3d__face--lid"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="crate3d__caption"><strong id="crateCount">0</strong> items packed</div>
           </div>
+
           <div class="offer-banner" id="offerBanner">Add more items to unlock offers</div>
           <div class="cart-total" style="margin-bottom:16px;"><span>Total</span><span id="craftTotal">₹0</span></div>
           <div class="form-field"><label>Your name</label><input type="text" id="custName" placeholder="Name" /></div>
@@ -92,6 +108,44 @@
 
     document.getElementById("footerMount").innerHTML = rrkFooterHtml();
 
+    function bounceCrate() {
+      const box = document.getElementById("crateBox");
+      const lid = document.getElementById("crateLid");
+      if (!box || !lid || !window.gsap) return;
+      gsap.timeline()
+        .to(lid, { rotateX: -108, duration: 0.22, ease: "power2.out" })
+        .to(box, { scale: 1.08, duration: 0.16, ease: "power2.out" }, "<")
+        .to(lid, { rotateX: 0, duration: 0.4, ease: "back.out(2.4)" }, "+=0.06")
+        .to(box, { scale: 1, duration: 0.4, ease: "back.out(2.4)" }, "<");
+    }
+
+    function flyToCrate(originEl) {
+      const box = document.getElementById("crateBox");
+      if (!originEl || !box || !window.gsap) { bounceCrate(); return; }
+      const originRect = originEl.getBoundingClientRect();
+      const boxRect = box.getBoundingClientRect();
+      const flyer = document.createElement("div");
+      flyer.className = "crate-flyer";
+      document.body.appendChild(flyer);
+      gsap.set(flyer, {
+        left: originRect.left + originRect.width / 2 - 9,
+        top: originRect.top + originRect.height / 2 - 9,
+        opacity: 1,
+        scale: 1
+      });
+      gsap.timeline({ onComplete: () => flyer.remove() })
+        .to(flyer, {
+          left: boxRect.left + boxRect.width / 2 - 9,
+          top: boxRect.top + boxRect.height / 2 - 26,
+          scale: 0.35,
+          rotate: 200,
+          duration: 0.62,
+          ease: "power2.in"
+        })
+        .to(flyer, { opacity: 0, duration: 0.14 }, "-=0.08")
+        .call(bounceCrate);
+    }
+
     function calcOffer() {
       const offers = data.craftOffers || RRK_DEFAULT.craftOffers;
       const itemCount = cart.length;
@@ -124,6 +178,7 @@
           if (!cart.length) cart.push({ id: "combo", name: combo.name, price: combo.price, qty: 1 });
           rrkSetCart(PAGE, cart);
           updateUI();
+          bounceCrate();
           rrkToast(combo.name + " loaded");
         });
       });
@@ -146,6 +201,7 @@
           if (line) line.qty++; else cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
           rrkSetCart(PAGE, cart);
           updateUI();
+          flyToCrate(btn);
           rrkToast(item.name + " added");
         });
       });
@@ -163,13 +219,8 @@
       document.getElementById("drawerTotal").textContent = rrkFormatRs(finalTotal);
       document.getElementById("offerBanner").textContent = discount ? discount.message : "Add more dishes or guests to unlock offers";
 
-      const preview = document.getElementById("platePreview");
-      if (cart.length) {
-        const img = cart[0].id !== "combo" ? data.menu.find((m) => m.id === cart[0].id)?.image : RRK_IMAGES.bucket;
-        preview.innerHTML = `<img src="${img || RRK_IMAGES.curry}" alt="Your plate" /><span style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.1em;color:var(--gold);">${rrkCartCount(cart)} ITEMS · ${guests} GUESTS</span>`;
-      } else {
-        preview.innerHTML = '<div class="plate-preview__empty">Add dishes to<br/>fill your plate</div>';
-      }
+      const crateCountEl = document.getElementById("crateCount");
+      if (crateCountEl) crateCountEl.textContent = rrkCartCount(cart);
 
       const list = document.getElementById("cartList");
       if (!cart.length) list.innerHTML = '<p class="cart-empty">Plate is empty</p>';
