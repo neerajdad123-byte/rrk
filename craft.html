@@ -14,12 +14,12 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="assets/rrk-shared.js"></script>
 </head>
-<body>
+<body class="craft-page">
   <div class="loader" id="loader"><div class="loader__content"><div class="loader__meta">Build your feast</div><div class="loader__title">Craft <span>My Plate</span></div><div class="loader__bar"></div></div></div>
   <div class="progress" id="progress"></div>
 
   <header class="nav">
-    <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
+    <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken</span></a>
     <nav><ul class="nav__links">
       <li><a href="index.html">Home</a></li>
       <li><a href="menu.html">Menu</a></li>
@@ -56,22 +56,12 @@
           </div>
           <p style="font-size:0.75rem;color:var(--muted);margin-bottom:16px;text-align:center;">How many are eating?</p>
 
-          <div class="crate3d" aria-hidden="true">
-            <div class="crate3d__scene">
-              <div class="crate3d__spin">
-                <div class="crate3d__box" id="crateBox">
-                  <div class="crate3d__face crate3d__face--front"><span>RRK</span></div>
-                  <div class="crate3d__face crate3d__face--side"></div>
-                  <div class="crate3d__face crate3d__face--floor"></div>
-                  <div class="crate3d__lid-hinge">
-                    <div class="crate3d__lid-flap" id="crateLid">
-                      <div class="crate3d__face crate3d__face--lid"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div class="crate2d" aria-hidden="true">
+            <div class="crate2d__box" id="crateBox">
+              <span class="crate2d__label">Your box</span>
+              <div class="crate2d__chips" id="crateChips"></div>
             </div>
-            <div class="crate3d__caption"><strong id="crateCount">0</strong> items packed</div>
+            <div class="crate2d__caption"><strong id="crateCount">0</strong> items packed</div>
           </div>
 
           <div class="offer-banner" id="offerBanner">Add more items to unlock offers</div>
@@ -108,20 +98,38 @@
 
     document.getElementById("footerMount").innerHTML = rrkFooterHtml();
 
-    function bounceCrate() {
+    let chipCount = 0;
+
+    function addChip() {
+      const wrap = document.getElementById("crateChips");
+      if (!wrap) return;
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.style.left = (10 + Math.random() * 80) + "%";
+      chip.style.top = (14 + Math.random() * 72) + "%";
+      chip.style.setProperty("--rot", (Math.random() * 40 - 20) + "deg");
+      wrap.appendChild(chip);
+      if (window.gsap) gsap.fromTo(chip, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(3)" });
+    }
+
+    function syncChips(targetCount) {
+      const wrap = document.getElementById("crateChips");
+      if (!wrap) return;
+      while (chipCount < targetCount) { chipCount++; addChip(); }
+      while (chipCount > targetCount) { wrap.lastElementChild?.remove(); chipCount--; }
+    }
+
+    function bounceBox() {
       const box = document.getElementById("crateBox");
-      const lid = document.getElementById("crateLid");
-      if (!box || !lid || !window.gsap) return;
+      if (!box || !window.gsap) return;
       gsap.timeline()
-        .to(lid, { rotateX: -108, duration: 0.22, ease: "power2.out" })
-        .to(box, { scale: 1.08, duration: 0.16, ease: "power2.out" }, "<")
-        .to(lid, { rotateX: 0, duration: 0.4, ease: "back.out(2.4)" }, "+=0.06")
-        .to(box, { scale: 1, duration: 0.4, ease: "back.out(2.4)" }, "<");
+        .to(box, { scale: 1.04, duration: 0.14, ease: "power2.out" })
+        .to(box, { scale: 1, duration: 0.32, ease: "back.out(2.4)" });
     }
 
     function flyToCrate(originEl) {
       const box = document.getElementById("crateBox");
-      if (!originEl || !box || !window.gsap) { bounceCrate(); return; }
+      if (!originEl || !box || !window.gsap) { bounceBox(); return; }
       const originRect = originEl.getBoundingClientRect();
       const boxRect = box.getBoundingClientRect();
       const flyer = document.createElement("div");
@@ -136,14 +144,14 @@
       gsap.timeline({ onComplete: () => flyer.remove() })
         .to(flyer, {
           left: boxRect.left + boxRect.width / 2 - 9,
-          top: boxRect.top + boxRect.height / 2 - 26,
+          top: boxRect.top + boxRect.height / 2 - 9,
           scale: 0.35,
           rotate: 200,
-          duration: 0.62,
+          duration: 0.55,
           ease: "power2.in"
         })
-        .to(flyer, { opacity: 0, duration: 0.14 }, "-=0.08")
-        .call(bounceCrate);
+        .to(flyer, { opacity: 0, duration: 0.12 }, "-=0.06")
+        .call(bounceBox);
     }
 
     function calcOffer() {
@@ -178,7 +186,7 @@
           if (!cart.length) cart.push({ id: "combo", name: combo.name, price: combo.price, qty: 1 });
           rrkSetCart(PAGE, cart);
           updateUI();
-          bounceCrate();
+          bounceBox();
           rrkToast(combo.name + " loaded");
         });
       });
@@ -221,6 +229,7 @@
 
       const crateCountEl = document.getElementById("crateCount");
       if (crateCountEl) crateCountEl.textContent = rrkCartCount(cart);
+      syncChips(rrkCartCount(cart));
 
       const list = document.getElementById("cartList");
       if (!cart.length) list.innerHTML = '<p class="cart-empty">Plate is empty</p>';

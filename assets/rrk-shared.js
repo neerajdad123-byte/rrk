@@ -180,6 +180,11 @@ function rrkInitPage(activeNav) {
     gsap.utils.toArray(".reveal").forEach((el) => {
       gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 90%" } });
     });
+    ScrollTrigger.create({
+      trigger: document.body, start: "80px top",
+      onEnter: () => document.querySelector(".nav")?.classList.add("is-deep"),
+      onLeaveBack: () => document.querySelector(".nav")?.classList.remove("is-deep")
+    });
   } else {
     document.getElementById("loader")?.remove();
   }
@@ -194,7 +199,7 @@ function rrkFooterHtml() {
     </div></div>
     <div class="footer__grid">
       <div class="footer__brand">
-        <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
+        <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken</span></a>
         <p>Red-hot plates, honest portions and fresh cuts — cooked in Eluru every day.</p>
       </div>
       <div><h5>Order</h5><ul>
@@ -221,7 +226,7 @@ function rrkNavHtml(active, showCart, cartPage) {
   const cartBtn = showCart ? `<button class="nav__cart" id="openCart" type="button"><svg class="nav__cart-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.7 9.2h10.6l.9 9.7a2.3 2.3 0 0 1-2.29 2.5H8.09a2.3 2.3 0 0 1-2.29-2.5l.9-9.7Z" fill="currentColor" opacity="0.92"/><path d="M9 9.2V7.1a3 3 0 0 1 6 0v2.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>Cart <span class="nav__cart-count" id="navCartCount">0</span></button>` : "";
   return `
   <header class="nav">
-    <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken<small>Eluru · Est. 2019</small></span></a>
+    <a class="brand" href="index.html"><span class="brand__mark">R</span><span class="brand__text">RRK Chicken</span></a>
     <nav><ul class="nav__links">
       <li><a href="index.html">Home</a></li>
       <li><a href="menu.html">Menu</a></li>
